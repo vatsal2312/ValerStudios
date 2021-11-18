@@ -1,4 +1,11 @@
 //SPDX-License-Identifier: Unlicense
+// The EvlrStaker contract can be deployed for each enterprise token within the VLR
+// token ecosystem.  It mimics the functionality of the VLR staking contract, with two key
+// differences:
+// 1.) Staking is done with the same token (the enterprise's BEP20 token) 
+// as that which is distributed through rewards.  On the other hand, VLR Staking rewards 
+// are given out as a basket of enterprise tokens, while stakers contribute VLR tokens
+// 2.) MTC is not purchased with a portion of staking fees
 
 pragma solidity ^0.8.0;
 
@@ -14,9 +21,8 @@ contract EvlrStaker is ERC20 {
     address private charityBagAddress;
     address private distributor;
     uint256 private stakingRewardsBag;
-
     address private burnAddress = 0x000000000000000000000000000000000000dEaD;
-
+    
     constructor(
         address _eVlrContractAddress,
         address _charityBagAddress,

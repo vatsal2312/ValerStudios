@@ -20,6 +20,12 @@ contract VlrStaker is ERC20 {
 
     address private burnAddress = 0x000000000000000000000000000000000000dEaD;
 
+//the following parameters are required for contract deployment
+// 1.)  The address of the VLR Token Contract, which holds tokens that are being staked.
+// 2.)  The address of a charity bag which recieves a portion of staking/ unstaking fees
+// 3.)  The address of the MTC token contract, which is purchased through pancake swap through staking/ unstaking fees
+// 4.)  The wrapped bnb address, which is used in the pancake swap path
+// 5.)  The address of the distributor who is permitted to distribute rewards token to stakers
     constructor(
         address _VlrContractAddress,
         address _charityBagAddress,
@@ -29,7 +35,7 @@ contract VlrStaker is ERC20 {
         address _distributorAddress
     ) ERC20("Staked VLR Token", "SVLR") {
         vlrContract = VlrContract(_VlrContractAddress);
-        stakingRewardsBag = 0; //do we need to initialize?
+        stakingRewardsBag = 0; 
         charityBagAddress = _charityBagAddress;
         vlrToMtcPath.push(_VlrContractAddress);
         vlrToMtcPath.push(_wbnbAddress);
@@ -39,6 +45,7 @@ contract VlrStaker is ERC20 {
         distributor = _distributorAddress;
     }
 
+// The StakerBag struct allows for simple calculations of the staker's contributions
     struct StakerBag {
         uint256 startTime;
         uint256 stopTime;
@@ -88,6 +95,7 @@ contract VlrStaker is ERC20 {
         }
     }
 
+//The path through which MTC is purchases is defined upon deployment
     function _buyMtc(uint256 _VlrToSwap, address _recipientAddress) private {
         uint256 minOut = _VlrToSwap - (_VlrToSwap / 10);
         pancakeRouter.swapExactTokensForTokens(
@@ -99,6 +107,7 @@ contract VlrStaker is ERC20 {
         );
     }
 
+//This function is temporarily public for testing purposes
     function stakeWithTimeParameters(
         uint256 startTime,
         uint256 stopTime,
@@ -126,7 +135,7 @@ contract VlrStaker is ERC20 {
         charityFeePaid = (_stakedVlrAmount * 21) / 10000;
         burnFeePaid = (_stakedVlrAmount * 9) / 10000;
 
-        //C. Mint s-vlr
+        //C. Mint staked vlr to represent a portion of ownership
         svlrMinted =
             _stakedVlrAmount -
             (stakingFeePaid + mtcFeePaid + charityFeePaid + burnFeePaid);
@@ -174,6 +183,10 @@ contract VlrStaker is ERC20 {
         burnFeePaid = (_unstakedAmount * 9) / 10000;
 
         uint256 totalSupply = totalSupply();
+//two ratios are used to determine the amount of staking fee rewards that an unstaking user is owed
+// 1.)  The Total Amount of Staking Fees Collected/ The Total Amount of VLR in the contract
+// 2.)  The user's staked VLR tokens/ the contract's total supply prior to unstaking
+// We multiply the two ratios by the total amount of staking fees collected to determine staking fees returned to user
 
         vlrRewardsReturned =
             ((stakingRewardsBag**2) * (_unstakedAmount)) /
@@ -242,8 +255,11 @@ contract VlrStaker is ERC20 {
         resetRewardsStakes();
     }
 
+    // Staking bag timers are reset by setting the stopTime to 0 and startTime to block.timestamp
     function resetRewardsStakes() private {
         for (uint256 i = 0; i < stakes.length; i++) {
+            //if the stoptime is not 0, then that amount has been unstaked.  It can be removed 
+            //from the array of stakes, once the value has been used for a reward distribution
             if (stakes[i].stopTime > 0) {
                 stakes[i] = stakes[stakes.length - 1];
                 stakes.pop();
@@ -290,6 +306,7 @@ contract VlrStaker is ERC20 {
         stakes.push(newBag);
     }
 
+// this function sets the stoptime to block.timestamp for removed staking, leaving a remainder with stoptime=0 when it exists
     function closeUnstakedBags(address owner, uint256 totalRemoved) private {
         uint256 stakeSum = 0;
         for (uint256 i = 0; i < stakes.length; i++) {
