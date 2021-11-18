@@ -8,34 +8,23 @@ import "./SampleBEP20s/VlrContract.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./PancakeSwap/IPancakeRouter02.sol";
 
-contract VlrStaker is ERC20 {
-    VlrContract private vlrContract;
-    IPancakeRouter02 private pancakeRouter;
-
+contract EvlrStaker is ERC20 {
+    ERC20 private eVlrContract;
     StakerBag[] private stakes;
     address private charityBagAddress;
-    address[] private vlrToMtcPath;
     address private distributor;
     uint256 private stakingRewardsBag;
 
     address private burnAddress = 0x000000000000000000000000000000000000dEaD;
 
     constructor(
-        address _VlrContractAddress,
+        address _eVlrContractAddress,
         address _charityBagAddress,
-        address _mtcContractAddress,
-        address _pancakeRouterAddress,
-        address _wbnbAddress,
         address _distributorAddress
     ) ERC20("Staked VLR Token", "SVLR") {
-        vlrContract = VlrContract(_VlrContractAddress);
-        stakingRewardsBag = 0; //do we need to initialize?
+        eVlrContract = ERC20(_eVlrContractAddress);
+        stakingRewardsBag = 0;
         charityBagAddress = _charityBagAddress;
-        vlrToMtcPath.push(_VlrContractAddress);
-        vlrToMtcPath.push(_wbnbAddress);
-        vlrToMtcPath.push(_wbnbAddress);
-        vlrToMtcPath.push(_mtcContractAddress);
-        pancakeRouter = IPancakeRouter02(_pancakeRouterAddress);
         distributor = _distributorAddress;
     }
 
@@ -88,73 +77,101 @@ contract VlrStaker is ERC20 {
         }
     }
 
-    function _buyMtc(uint256 _VlrToSwap, address _recipientAddress) private {
-        uint256 minOut = _VlrToSwap - (_VlrToSwap / 10);
-        pancakeRouter.swapExactTokensForTokens(
-            _VlrToSwap,
-            minOut,
-            vlrToMtcPath,
-            _recipientAddress,
-            (block.timestamp + (60 * 10))
-        );
-    }
-
-    function stakeWithTimeParameters(
-        uint256 startTime,
-        uint256 stopTime,
-        uint256 _stakedVlrAmount
-    )
+    function stake(uint256 _stakedVlrAmount)
         public
         returns (
-            uint256 mtcFeePaid,
-            uint256 charityFeePaid,
-            uint256 burnFeePaid,
+            uint256 svlrMinted,
             uint256 stakingFeePaid,
-            uint256 svlrMinted
+            uint256 charityFeePaid,
+            uint256 burnFeePaid
         )
     {
         //A. Check for a sufficient balance and send vlr to staking contract
         require(
-            vlrContract.balanceOf(msg.sender) >= (_stakedVlrAmount),
+            eVlrContract.balanceOf(msg.sender) >= (_stakedVlrAmount),
             "Insufficient enterprise token balance"
         );
 
         //B. Calculate fees
-        stakingFeePaid = (_stakedVlrAmount * 24) / 1000;
+        stakingFeePaid = (_stakedVlrAmount * 27) / 1000;
         stakingRewardsBag += stakingFeePaid; //increment the staking rewards fee bag
-        mtcFeePaid = (_stakedVlrAmount * 3) / 1000;
         charityFeePaid = (_stakedVlrAmount * 21) / 10000;
         burnFeePaid = (_stakedVlrAmount * 9) / 10000;
 
         //C. Mint s-vlr
         svlrMinted =
             _stakedVlrAmount -
-            (stakingFeePaid + mtcFeePaid + charityFeePaid + burnFeePaid);
+            (stakingFeePaid + charityFeePaid + burnFeePaid);
         _mint(msg.sender, svlrMinted);
 
         //D. Add staker bags
-        _createStakeBag(startTime, stopTime, svlrMinted, msg.sender);
+        _createStakeBag(block.timestamp, 0, svlrMinted, msg.sender);
 
         // //E.  Work with fees and burns
-        vlrContract.transferFrom(msg.sender, charityBagAddress, charityFeePaid);
-        vlrContract.transferFrom(msg.sender, burnAddress, burnFeePaid);
-        vlrContract.transferFrom(
+        eVlrContract.transferFrom(
+            msg.sender,
+            charityBagAddress,
+            charityFeePaid
+        );
+        eVlrContract.transferFrom(msg.sender, burnAddress, burnFeePaid);
+        eVlrContract.transferFrom(
             msg.sender,
             address(this),
-            _stakedVlrAmount - burnFeePaid - charityFeePaid - mtcFeePaid
+            _stakedVlrAmount - burnFeePaid - charityFeePaid
         );
-        // _buyMtc(mtcFeePaid, msg.sender);
-        vlrContract.transferFrom(msg.sender, burnAddress, mtcFeePaid);
     }
 
-    function stake(uint256 _stakedAmount) external {
-        stakeWithTimeParameters(block.timestamp, 0, _stakedAmount);
+    function stakeWithTimeParameters(
+        uint256 _startTime,
+        uint256 _stopTime,
+        uint256 _stakedVlrAmount
+    )
+        public
+        returns (
+            uint256 svlrMinted,
+            uint256 stakingFeePaid,
+            uint256 charityFeePaid,
+            uint256 burnFeePaid
+        )
+    {
+        //A. Check for a sufficient balance and send vlr to staking contract
+        require(
+            eVlrContract.balanceOf(msg.sender) >= (_stakedVlrAmount),
+            "Insufficient enterprise token balance"
+        );
+
+        //B. Calculate fees
+        stakingFeePaid = (_stakedVlrAmount * 27) / 1000;
+        stakingRewardsBag += stakingFeePaid; //increment the staking rewards fee bag
+        charityFeePaid = (_stakedVlrAmount * 21) / 10000;
+        burnFeePaid = (_stakedVlrAmount * 9) / 10000;
+
+        //C. Mint s-vlr
+        svlrMinted =
+            _stakedVlrAmount -
+            (stakingFeePaid + charityFeePaid + burnFeePaid);
+        _mint(msg.sender, svlrMinted);
+
+        //D. Add staker bags
+        _createStakeBag(_startTime, _stopTime, svlrMinted, msg.sender);
+
+        // //E.  Work with fees and burns
+        eVlrContract.transferFrom(
+            msg.sender,
+            charityBagAddress,
+            charityFeePaid
+        );
+        eVlrContract.transferFrom(msg.sender, burnAddress, burnFeePaid);
+        eVlrContract.transferFrom(
+            msg.sender,
+            address(this),
+            _stakedVlrAmount - burnFeePaid - charityFeePaid
+        );
     }
 
     function unstake(uint256 _unstakedAmount)
         external
         returns (
-            uint256 mtcFeePaid,
             uint256 charityFeePaid,
             uint256 burnFeePaid,
             uint256 stakingFeePaid,
@@ -167,9 +184,8 @@ contract VlrStaker is ERC20 {
             "Insufficient staked VLR"
         );
 
-        stakingFeePaid = (_unstakedAmount * 24) / 1000;
+        stakingFeePaid = (_unstakedAmount * 27) / 1000;
         stakingRewardsBag += stakingFeePaid;
-        mtcFeePaid = (_unstakedAmount * 3) / 1000;
         charityFeePaid = (_unstakedAmount * 21) / 10000;
         burnFeePaid = (_unstakedAmount * 9) / 10000;
 
@@ -182,22 +198,14 @@ contract VlrStaker is ERC20 {
                 (totalSupply * _unstakedAmount));
         stakingRewardsBag -= vlrRewardsReturned;
         vlrReturned = vlrRewardsReturned + _unstakedAmount;
-        vlrContract.transfer(
+        eVlrContract.transfer(
             msg.sender,
-            vlrReturned -
-                stakingFeePaid -
-                mtcFeePaid -
-                charityFeePaid -
-                burnFeePaid
+            vlrReturned - stakingFeePaid - charityFeePaid - burnFeePaid
         );
         _burn(msg.sender, _unstakedAmount);
 
-        vlrContract.transfer(charityBagAddress, charityFeePaid);
-        // _buyMtc(mtcFeePaid, msg.sender);
-        vlrContract.transfer(burnAddress, mtcFeePaid);
-
-        vlrContract.transfer(burnAddress, burnFeePaid);
-
+        eVlrContract.transfer(charityBagAddress, charityFeePaid);
+        eVlrContract.transfer(burnAddress, burnFeePaid);
         closeUnstakedBags(msg.sender, _unstakedAmount);
     }
 
@@ -214,30 +222,21 @@ contract VlrStaker is ERC20 {
         }
     }
 
-//Note: distributor is given approval prior to making distributions
-//Should we add a require check for approvals?
-    function distributeRewards(
-        address[] memory rewardTokenAddress,
-        uint256[] memory rewardTokenValue
-    ) external {
+    function distributeRewards(uint256 rewardTokenValue) external {
         require(
             msg.sender == distributor,
             "Only designated distributor can make reward distributions"
         );
-        ERC20 enterpriseContract;
-        for (uint256 j = 0; j < rewardTokenAddress.length; j++) {
-            enterpriseContract = ERC20(rewardTokenAddress[j]);
-            uint256 totalStakedValue = getTotalStakedValue(block.timestamp);
-            for (uint256 i = 0; i < stakes.length; i++) {
-                uint256 bagValue = getStakeValue(i, block.timestamp);
-                uint256 transferAmount = (rewardTokenValue[j] * bagValue) /
-                    totalStakedValue;
-                enterpriseContract.transferFrom(
-                    msg.sender,
-                    stakes[i].ownerAddress,
-                    transferAmount
-                );
-            }
+        require(
+            eVlrContract.balanceOf(msg.sender) >= rewardTokenValue,
+            "Cannot distribute more tokens than owned"
+        );
+        uint256 totalStakedValue = getTotalStakedValue(block.timestamp);
+        for (uint256 i = 0; i < stakes.length; i++) {
+            uint256 bagValue = getStakeValue(i, block.timestamp);
+            uint256 transferAmount = (rewardTokenValue * bagValue) /
+                totalStakedValue;
+            eVlrContract.transfer(stakes[i].ownerAddress, transferAmount);
         }
         resetRewardsStakes();
     }
