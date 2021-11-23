@@ -22,16 +22,26 @@ contract EvlrStaker is ERC20 {
     address private distributor;
     uint256 private stakingRewardsBag;
     address private burnAddress = 0x000000000000000000000000000000000000dEaD;
-    
+    uint private stakingFee;
+    uint private charityFee;
+    uint private burnFee;
+
     constructor(
         address _eVlrContractAddress,
         address _charityBagAddress,
-        address _distributorAddress
+        address _distributorAddress,
+        uint _stakingFee,   // a percentage over 1000 ie _stakingFee = 9 gives 0.9%
+        uint _charityFee,   // a percentage over 1000 ie _stakingFee = 9 gives 0.9%
+        uint _burnFee   // a percentage over 1000 ie _stakingFee = 9 gives 0.9%
     ) ERC20("Staked VLR Token", "SVLR") {
         eVlrContract = ERC20(_eVlrContractAddress);
         stakingRewardsBag = 0;
         charityBagAddress = _charityBagAddress;
         distributor = _distributorAddress;
+        stakingFee = _stakingFee;
+        charityFee = _charityFee;
+        burnFee = _burnFee;
+
     }
 
     struct StakerBag {
@@ -99,10 +109,10 @@ contract EvlrStaker is ERC20 {
         );
 
         //B. Calculate fees
-        stakingFeePaid = (_stakedVlrAmount * 27) / 1000;
+        stakingFeePaid = (_stakedVlrAmount * stakingFee) / 1000;
         stakingRewardsBag += stakingFeePaid; //increment the staking rewards fee bag
-        charityFeePaid = (_stakedVlrAmount * 21) / 10000;
-        burnFeePaid = (_stakedVlrAmount * 9) / 10000;
+        charityFeePaid = (_stakedVlrAmount * charityFee) / 10000;
+        burnFeePaid = (_stakedVlrAmount * burnFee) / 10000;
 
         //C. Mint s-vlr
         svlrMinted =
@@ -147,10 +157,10 @@ contract EvlrStaker is ERC20 {
         );
 
         //B. Calculate fees
-        stakingFeePaid = (_stakedVlrAmount * 27) / 1000;
+        stakingFeePaid = (_stakedVlrAmount * stakingFee) / 1000;
         stakingRewardsBag += stakingFeePaid; //increment the staking rewards fee bag
-        charityFeePaid = (_stakedVlrAmount * 21) / 10000;
-        burnFeePaid = (_stakedVlrAmount * 9) / 10000;
+        charityFeePaid = (_stakedVlrAmount * charityFee) / 10000;
+        burnFeePaid = (_stakedVlrAmount * burnFee) / 10000;
 
         //C. Mint s-vlr
         svlrMinted =
@@ -190,10 +200,10 @@ contract EvlrStaker is ERC20 {
             "Insufficient staked VLR"
         );
 
-        stakingFeePaid = (_unstakedAmount * 27) / 1000;
+        stakingFeePaid = (_unstakedAmount * stakingFee) / 1000;
         stakingRewardsBag += stakingFeePaid;
-        charityFeePaid = (_unstakedAmount * 21) / 10000;
-        burnFeePaid = (_unstakedAmount * 9) / 10000;
+        charityFeePaid = (_unstakedAmount * charityFee) / 10000;
+        burnFeePaid = (_unstakedAmount * burnFee) / 10000;
 
         uint256 totalSupply = totalSupply();
 
@@ -270,11 +280,9 @@ contract EvlrStaker is ERC20 {
             if (stakes[i].stopTime > 0) {
                 uint256 stakedTime = (stakes[i].stopTime -
                     stakes[i].startTime) / 86400;
-
                 totalValue += (stakedTime * stakes[i].stakedTokens);
             } else {
                 uint256 stakedTime = (endTime - stakes[i].startTime) / 86400;
-
                 totalValue += (stakedTime * stakes[i].stakedTokens);
             }
         }

@@ -319,18 +319,19 @@ describe("VLR Staking Pool Tests", function () {
     );
     await staker.distributeRewards(rewardsAddresses, rewardAmounts);
 
-    expect(await eVlr.balanceOf(signer1.address)).to.equal(166132454);
-    expect(await eVlr.balanceOf(signer2.address)).to.equal(152363324);
-    expect(await eVlr.balanceOf(signer3.address)).to.equal(232946593);
-    expect(await eVlr.balanceOf(signer4.address)).to.equal(85774908);
-    expect(await eVlr.balanceOf(signer5.address)).to.equal(130287571);
-    expect(await eVlr.balanceOf(signer6.address)).to.equal(126405128);
-    expect(await eVlr2.balanceOf(signer1.address)).to.equal(166132454);
-    expect(await eVlr2.balanceOf(signer2.address)).to.equal(152363324);
-    expect(await eVlr2.balanceOf(signer3.address)).to.equal(232946593);
-    expect(await eVlr2.balanceOf(signer4.address)).to.equal(85774908);
-    expect(await eVlr2.balanceOf(signer5.address)).to.equal(130287571);
-    expect(await eVlr2.balanceOf(signer6.address)).to.equal(126405128);
+    expect(await eVlr.balanceOf(signer1.address)).to.equal(164410058);
+    expect(await eVlr.balanceOf(signer2.address)).to.equal(151112185);
+    expect(await eVlr.balanceOf(signer3.address)).to.equal(232108317);
+    expect(await eVlr.balanceOf(signer4.address)).to.equal(86637653);
+    expect(await eVlr.balanceOf(signer5.address)).to.equal(132011605);
+    expect(await eVlr.balanceOf(signer6.address)).to.equal(128949065);
+
+    expect(await eVlr2.balanceOf(signer1.address)).to.equal(164410058);
+    expect(await eVlr2.balanceOf(signer2.address)).to.equal(151112185);
+    expect(await eVlr2.balanceOf(signer3.address)).to.equal(232108317);
+    expect(await eVlr2.balanceOf(signer4.address)).to.equal(86637653);
+    expect(await eVlr2.balanceOf(signer5.address)).to.equal(132011605);
+    expect(await eVlr2.balanceOf(signer6.address)).to.equal(128949065);
   });
 
 });

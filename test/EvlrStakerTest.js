@@ -44,7 +44,10 @@ describe("VLR Enterprise Staking Pool Tests", function () {
     staker = await Staker.deploy(
       mockEvlr.address,
       charityBag.address,
-      deployerWallet.address
+      deployerWallet.address,
+      27,
+      21,
+      9
     );
     await staker.deployed();
   });
@@ -282,31 +285,117 @@ describe("VLR Enterprise Staking Pool Tests", function () {
     ).to.be.revertedWith(
       "Only designated distributor can make reward distributions"
     );
-    await staker.distributeRewards(1000000000);
+
+    const timeNow = Math.floor(Date.now() / 1000);
+
     const initialWalletBalance = 1000000000000;
+    const deployerStakeValue = toDecimal(
+      await staker.getStakeValue(0, timeNow)
+    );
     const signer1Stake = 800000000;
+    const signer1StakeValue = toDecimal(await staker.getStakeValue(1, timeNow));
+    const signer1Bag = await staker.getStake(1);
+    const signer1TimeDiff = timeNow - Number(signer1Bag.startTime);
+    expect(signer1StakeValue).to.equal(
+      toDecimal(Math.floor(signer1TimeDiff / 86400) * signer1Bag.stakedTokens)
+    );
+
     const signer2Stake = 750000000;
+    const signer2Bag = await staker.getStake(2);
+    const signer2TimeDiff = timeNow - Number(signer2Bag.startTime);
+    const signer2StakeValue = toDecimal(await staker.getStakeValue(2, timeNow));
+    expect(signer2StakeValue).to.equal(
+      toDecimal(Math.floor(signer2TimeDiff / 86400) * signer2Bag.stakedTokens)
+    );
+
     const signer3Stake = 1200000000;
+    const signer3Bag = await staker.getStake(3);
+    const signer3TimeDiff = timeNow - Number(signer3Bag.startTime);
+    const signer3StakeValue = toDecimal(await staker.getStakeValue(3, timeNow));
+    expect(signer3StakeValue).to.equal(
+      toDecimal(Math.floor(signer3TimeDiff / 86400) * signer3Bag.stakedTokens)
+    );
+
     const signer4Stake = 500000000;
+    const signer4Bag = await staker.getStake(4);
+    const signer4TimeDiff = timeNow - Number(signer4Bag.startTime);
+    const signer4StakeValue = toDecimal(await staker.getStakeValue(4, timeNow));
+    expect(signer4StakeValue).to.equal(
+      toDecimal(Math.floor(signer4TimeDiff / 86400) * signer4Bag.stakedTokens)
+    );
+
     const signer5Stake = 780000000;
+    const signer5Bag = await staker.getStake(5);
+    const signer5TimeDiff = timeNow - Number(signer5Bag.startTime);
+    const signer5StakeValue = toDecimal(await staker.getStakeValue(5, timeNow));
+    expect(signer5StakeValue).to.equal(
+      toDecimal(Math.floor(signer5TimeDiff / 86400) * signer5Bag.stakedTokens)
+    );
+
     const signer6Stake = 800000000;
+    const signer6Bag = await staker.getStake(6);
+    const signer6TimeDiff = timeNow - Number(signer6Bag.startTime);
+    const signer6StakeValue = toDecimal(await staker.getStakeValue(6, timeNow));
+    expect(signer6StakeValue).to.equal(
+      toDecimal(Math.floor(signer6TimeDiff / 86400) * signer6Bag.stakedTokens)
+    );
+
+    const totalStaked =
+      deployerStakeValue +
+      signer1StakeValue +
+      signer2StakeValue +
+      signer3StakeValue +
+      signer4StakeValue +
+      signer5StakeValue +
+      signer6StakeValue;
+    const rewardsToDistribute = 1000000000;
+
+    const rewards1 = Math.floor(
+      (signer1StakeValue * rewardsToDistribute) / totalStaked
+    );
+    expect(rewards1).to.equal(164410058);
+
+    const rewards2 = Math.floor(
+      (signer2StakeValue * rewardsToDistribute) / totalStaked
+    );
+    expect(rewards2).to.equal(151112185);
+
+    const rewards3 = Math.floor(
+      (signer3StakeValue * rewardsToDistribute) / totalStaked
+    );
+    expect(rewards3).to.equal(232108317)
+    const rewards4 = Math.floor(
+      (signer4StakeValue * rewardsToDistribute) / totalStaked
+    );
+    expect(rewards4).to.equal(86637653)
+    const rewards5 = Math.floor(
+      (signer5StakeValue * rewardsToDistribute) / totalStaked
+      );
+      expect(rewards5).to.equal(132011605)
+      const rewards6 = Math.floor(
+        (signer6StakeValue * rewardsToDistribute) / totalStaked
+        );
+        expect(rewards6).to.equal(128949065)
+
+    await staker.distributeRewards(rewardsToDistribute);
+
     expect(await mockEvlr.balanceOf(signer1.address)).to.equal(
-      initialWalletBalance - signer1Stake + 166132454
+      initialWalletBalance - signer1Stake + 164410058
     );
     expect(await mockEvlr.balanceOf(signer2.address)).to.equal(
-      initialWalletBalance - signer2Stake + 152363324
+      initialWalletBalance - signer2Stake + 151112185
     );
     expect(await mockEvlr.balanceOf(signer3.address)).to.equal(
-      initialWalletBalance - signer3Stake + 232946593
+      initialWalletBalance - signer3Stake + 232108317
     );
     expect(await mockEvlr.balanceOf(signer4.address)).to.equal(
-      initialWalletBalance - signer4Stake + 85774908
+      initialWalletBalance - signer4Stake + 86637653
     );
     expect(await mockEvlr.balanceOf(signer5.address)).to.equal(
-      initialWalletBalance - signer5Stake + 130287571
+      initialWalletBalance - signer5Stake + 132011605
     );
     expect(await mockEvlr.balanceOf(signer6.address)).to.equal(
-      initialWalletBalance - signer6Stake + 126405128
+      initialWalletBalance - signer6Stake + 128949065
     );
   });
 });
